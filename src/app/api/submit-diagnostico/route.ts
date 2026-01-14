@@ -1,7 +1,13 @@
 
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
 
+// Inicializamos el cliente de Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_ANON_KEY!
+);
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Nombre inválido"),
@@ -20,11 +26,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ errors: result.error.flatten().fieldErrors }, { status: 400 });
     }
 
-    // In a real application, you would process the data here (e.g., save to a database)
-    console.log('Form data received:', result.data);
+    // INSERTAR EN SUPABASE
+    const { data, error } = await supabase
+      .from('diagnosticos')
+      .insert([
+        {
+          full_name: result.data.fullName,
+          specialty: result.data.specialty,
+          email: result.data.email,
+          phone: result.data.phone,
+          monthly_patients: result.data.monthlyPatients
+        }
+      ]);
+
+    if (error) throw error;
 
     return NextResponse.json({ message: 'Success' }, { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al guardar datos' }, { status: 500 });
   }
 }
